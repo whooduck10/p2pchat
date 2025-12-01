@@ -1,0 +1,33 @@
+{
+  "1": [
+    {
+      "id": 1,
+      "text": "Hey there! How are you?",
+      "sender": "them",
+      "time": "10: 00 AM"
+    },
+    {
+      "id": 2,
+      "text": "I am doing great, thanks for asking!",
+      "sender": "me",
+      "time": "10: 02 AM"
+    },
+    {
+      "id": 3,
+      "text": "I am doing great, thanks for asking!",
+      "sender": "them",
+      "time": "10: 03 AM"
+    }
+  ],
+  "2": [],
+  "3": [
+    {
+      "id": 1,
+      "text": "Did you see the new design?",
+      "sender": "them",
+      "time": "Yesterday"
+    }
+  ],
+  "4": [],
+  "5": []
+}

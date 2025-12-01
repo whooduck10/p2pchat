@@ -1,0 +1,4 @@
+#get-message.http
+GET http://localhost:9000/api/get-messages
+
+

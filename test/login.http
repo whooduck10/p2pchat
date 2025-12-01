@@ -1,0 +1,11 @@
+#login.http
+POST http://localhost:9000/login
+Content-Type: application/json
+Cookie: auth = true
+
+username=admin&password=password
+
+
+
+
+

@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head>
+    <title>bksysnet@hcmut welcome</title>
+
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="css/styles.css" />
+    
+</head>
+
+<body>
+<div>
+    <h1>bksysnet@hcmut  Domain</h1>
+    <p>This domain is for use in illustrative examples in documents.</p>
+    <img src="images/welcome.png" alt="bksysnet at HCMUT" width="500" height="600"> 
+       
+    <h3>Register / Add Peer</h3>
+    <input id="ip" placeholder="Enter IP" />
+    <input id="port" placeholder="Enter Port" />
+
+    <button onclick="submitInfo()">Submit Info</button>
+    <button onclick="addList()">Online</button>
+    <button onclick="remove()">Offline</button>
+
+    <h3>Get Peer List</h3>
+    <button onclick="getList()">Get List</button>
+    <button onclick="chat()">Start Chatting</button>
+    <div id="peerTable"></div>
+</div>
+
+<div id="popup"></div>
+
+<script>
+
+function chat() {
+    window.location.href = 'chat.html';
+    
+}
+
+function showPopup(msg, isError = false) {
+    const popup = document.getElementById('popup');
+    popup.textContent = msg;
+    popup.style.background = isError ? '#e53935' : '#4CAF50';
+    popup.style.display = 'block';
+    setTimeout(() => popup.style.display = 'none', 1200);
+}
+
+
+async function submitInfo() {
+    const ip = document.getElementById('ip').value;
+    const port = document.getElementById('port').value;
+
+    const res = await fetch('/submit-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip, port })
+    });
+    const data = await res.json();
+    if (data.error) return showPopup(data.error, true);
+    showPopup(`${data.peer_id} is successfully registered`);
+}
+
+async function addList() {
+    const ip = document.getElementById('ip').value;
+    const port = document.getElementById('port').value;
+
+    const res = await fetch('/add-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip, port })
+    });
+    const data = await res.json();
+    if (data.error) return showPopup(data.error, true);
+    showPopup(`${data.peer_id} is online`);
+}
+
+async function remove() {
+    const ip = document.getElementById('ip').value;
+    const port = document.getElementById('port').value;
+
+    const res = await fetch('/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip, port })
+    });
+    const data = await res.json();
+    if (data.error) return showPopup(data.error, true);
+    showPopup(`${data.peer_id} is offline`);
+}
+
+async function getList() {
+    const res = await fetch('/get-list');
+    const data = await res.json();
+
+    let html = '<table><tr><th>IP</th><th>Port</th></tr>';
+
+    for (const peerId in data.peer_list) {
+        const item = data.peer_list[peerId];
+        html += `<tr>
+            <td>${item.ip}</td>
+            <td>${item.port}</td>
+        </tr>`;
+    }
+
+    html += '</table>';
+    document.getElementById('peerTable').innerHTML = html;
+}
+</script>
+
+
+</body>
+</html>

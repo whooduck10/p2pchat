@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="stylesheet" href="css/chat.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="app-title">NeonChat</h1>
+                <button id="connectBtn" class="connect-btn">
+                    <span class="btn-text">Connect</span>
+                    <span class="status-dot"></span>
+                </button>
+            </div>
+            
+            <div class="user-list-label">Online Users</div>
+            <ul class="user-list" id="userList">
+                <!-- Users will be populated by JS -->
+            </ul>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-area">
+            <div id="chatView" style="display: none; height: 100%; flex-direction: column;">
+                <header class="chat-header">
+                    <div class="user-avatar" id="headerAvatar"></div>
+                    <div class="chat-header-info">
+                        <h2 id="headerName">User Name</h2>
+                        <div class="chat-header-status" id="headerStatus">Online</div>
+                    </div>
+                </header>
+
+                <div class="messages-container" id="messagesContainer">
+                    <!-- Messages will appear here -->
+                </div>
+
+                <div class="input-area">
+                    <input type="text" id="messageInput" class="message-input" placeholder="Type a message...">
+                    <button id="sendBtn" class="send-btn">
+                        <svg viewBox="0 0 24 24">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div id="emptyState" class="empty-state">
+                <div class="empty-state-icon">👋</div>
+                <h3>Welcome</h3>
+                <p>Select a user from the list to start chatting</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // State
+        let users =     [];
+        let messages = {};
+        let currentUserId = null;
+        let isConnected = false;
+
+        // API Calls
+        // API Calls
+        async function getMessages() {
+            try {
+                const res = await fetch('/api/get-messages');
+                const data = await res.json();
+                
+                // ERROR WAS HERE: You were trying to access data.messages
+                // But the data variable IS the messages object already.
+                console.log("Messages received:", data); // Debugging
+                return data || {}; 
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+                return {};
+            }
+        }
+
+        async function getUsers() {
+            try {
+                const res = await fetch('/api/get-users');
+                const data = await res.json();
+                
+                // ERROR WAS HERE: The logs show data is { "users": [...] }
+                // So data.users is correct, BUT we need to be safe.
+                console.log("Users received:", data); // Debugging
+                return (data.users || []).map(u => ({
+                    id: u.id,
+                    name: u.username,
+                    status: u.status || 'offline',
+                    avatarColor: getRandomColor()
+                }));
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                return [];
+            }
+        }
+
+        function getRandomColor() {
+            const colors = [
+                'linear-gradient(135deg, #FF6B6B, #EE5253)',
+                'linear-gradient(135deg, #48DBFB, #0ABDE3)',
+                'linear-gradient(135deg, #1DD1A1, #10AC84)',
+                'linear-gradient(135deg, #F368E0, #FF9FF3)',
+                'linear-gradient(135deg, #FF9F43, #EE5A24)'
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // DOM Elements
+        const userListEl = document.getElementById('userList');
+        const chatViewEl = document.getElementById('chatView');
+        const emptyStateEl = document.getElementById('emptyState');
+        const headerNameEl = document.getElementById('headerName');
+        const headerStatusEl = document.getElementById('headerStatus');
+        const headerAvatarEl = document.getElementById('headerAvatar');
+        const messagesContainerEl = document.getElementById('messagesContainer');
+        const messageInputEl = document.getElementById('messageInput');
+        const sendBtnEl = document.getElementById('sendBtn');
+        const connectBtnEl = document.getElementById('connectBtn');
+
+        // Initialize
+        async function init() {
+            users = await getUsers();
+            messages = await getMessages();
+            renderUserList();
+            setupEventListeners();
+        }
+
+        function renderUserList() {
+            userListEl.innerHTML = '';
+
+            users.forEach(user => {
+                const li = document.createElement('li');
+                li.className = `user-item ${user.status === 'online' ? 'online' : ''} ${currentUserId === user.id ? 'active' : ''}`;
+                li.onclick = () => selectUser(user.id);
+                
+                const initials = user.name.split(' ').map(n => n[0]).join('');
+                
+                li.innerHTML = `
+                    <div class="user-avatar" style="background: ${user.avatarColor}">
+                        ${initials}
+                        <div class="status-indicator"></div>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">${user.name}</div>
+                        <div class="user-status-text">${user.status}</div>
+                    </div>
+                `;
+                userListEl.appendChild(li);
+            });
+        }
+
+        function selectUser(id) {
+            if (!isConnected) {
+                alert('Please connect first!');
+                return;
+            }
+
+            currentUserId = id;
+            const user = users.find(u => u.id === id);
+            
+            // Update UI
+            emptyStateEl.style.display = 'none';
+            chatViewEl.style.display = 'flex';
+            
+            // Update Header
+            headerNameEl.textContent = user.name;
+            headerStatusEl.textContent = user.status === 'online' ? 'Online' : 'Last seen recently';
+            const initials = user.name.split(' ').map(n => n[0]).join('');
+            headerAvatarEl.style.background = user.avatarColor;
+            headerAvatarEl.textContent = initials;
+
+            renderMessages();
+            renderUserList(); // To update active state
+            
+            // Focus input
+            messageInputEl.focus();
+        }
+
+        function renderMessages() {
+            messagesContainerEl.innerHTML = '';
+
+            const userMessages = messages[currentUserId] || [];
+            
+            userMessages.forEach(msg => {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `message ${msg.sender === 'me' ? 'sent' : 'received'}`;
+                msgDiv.innerHTML = `
+                    ${msg.text}
+                    <div class="message-time">${msg.time}</div>
+                `;
+                messagesContainerEl.appendChild(msgDiv);
+            });
+            
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            messagesContainerEl.scrollTop = messagesContainerEl.scrollHeight;
+        }
+
+        function sendMessage() {
+            const text = messageInputEl.value.trim();
+            if (!text || !currentUserId) return;
+
+            // Add message
+            const newMsg = {
+                id: Date.now(),
+                text: text,
+                sender: 'me',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            if (!messages[currentUserId]) messages[currentUserId] = [];
+            messages[currentUserId].push(newMsg);
+
+            messageInputEl.value = '';
+            renderMessages();
+
+            // Simulate reply
+            setTimeout(() => {
+                const replyMsg = {
+                    id: Date.now() + 1,
+                    text: "That's interesting! Tell me more.",
+                    sender: 'them',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                messages[currentUserId].push(replyMsg);
+                renderMessages();
+            }, 1500);
+        }
+
+        function toggleConnect() {
+            isConnected = !isConnected;
+            const btnText = connectBtnEl.querySelector('.btn-text');
+            
+            if (isConnected) {
+                connectBtnEl.classList.add('connected');
+                btnText.textContent = 'Connected';
+                // Simulate some users coming online
+                renderUserList();
+            } else {
+                connectBtnEl.classList.remove('connected');
+                btnText.textContent = 'Connect';
+                currentUserId = null;
+                chatViewEl.style.display = 'none';
+                emptyStateEl.style.display = 'flex';
+                renderUserList();
+            }
+        }
+
+        function setupEventListeners() {
+            connectBtnEl.addEventListener('click', toggleConnect);
+            
+            sendBtnEl.addEventListener('click', sendMessage);
+            
+            messageInputEl.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        }
+
+        // Run
+        init();
+    </script>
+</body>
+</html>

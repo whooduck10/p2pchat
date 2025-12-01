@@ -1,0 +1,5 @@
+#user 
+
+GET http://localhost:9000/user
+Content-Type: application/json
+Cookie: auth = true
